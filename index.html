@@ -177,6 +177,69 @@
 </div>
 
 <script>
+    let serviceData = [];
+
+    // Llama al historial en Drive
+    async function loadServiceHistory() {
+        const historyDiv = document.getElementById('serviceHistory');
+        historyDiv.innerHTML = "<p style='text-align:center;'>🔄 Buscando archivos en Drive...</p>";
+        
+        try {
+            // Añadimos ?action=getServices al final de tu URL de script
+            const response = await fetch(scriptURL + "?action=getServices");
+            serviceData = await response.json();
+            renderServices(serviceData);
+        } catch (e) {
+            historyDiv.innerHTML = "<p style='color:red; text-align:center;'>❌ Error al conectar con el historial</p>";
+        }
+    }
+
+    // Dibuja las tarjetas de servicio en la pantalla
+    function renderServices(data) {
+        const historyDiv = document.getElementById('serviceHistory');
+        historyDiv.innerHTML = "";
+        
+        if(data.length === 0) {
+            historyDiv.innerHTML = "<p style='text-align:center;'>El historial de mantenimiento está vacío.</p>";
+            return;
+        }
+        
+        data.forEach(s => {
+            // Si hay un recibo escaneado, crea el botón verde
+            let btnHtml = (s.fileUrl && s.fileUrl !== "Sin recibo adjunto") 
+                ? `<button onclick="window.open('${s.fileUrl}', '_blank')" style="background:#2ecc71; color:white; border:none; padding:8px 15px; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:8px;">📄 VER FACTURA</button>` 
+                : `<span style="font-size:11px; color:#aaa; font-style:italic;">Sin factura adjunta</span>`;
+                
+            historyDiv.innerHTML += `
+                <div style="background:white; padding:12px; margin-bottom:12px; border-radius:10px; border-left: 5px solid #e67e22; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                    <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:14px; color:#004080;">
+                        <span>${s.vendor}</span>
+                        <span style="color:#d9534f;">$${parseFloat(s.costo).toFixed(2)}</span>
+                    </div>
+                    <div style="font-size:11px; color:#666; margin-top:6px; background:#f0f7ff; padding:5px; border-radius:5px;">
+                        📅 ${s.fecha} | ⏱️ ${s.horas} hrs | ⚙️ ${s.categoria}
+                    </div>
+                    <div style="font-size:13px; margin-top:8px; color:#333; font-weight:500;">
+                        ${s.desc}
+                    </div>
+                    <div style="text-align:right; margin-top:10px; border-top:1px solid #eee; padding-top:10px;">
+                        ${btnHtml}
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    // Filtra el historial mientras escribes
+    function filterServices() {
+        const term = document.getElementById('searchService').value.toLowerCase();
+        const filtered = serviceData.filter(s => 
+            s.vendor.toLowerCase().includes(term) || 
+            s.desc.toLowerCase().includes(term) ||
+            s.categoria.toLowerCase().includes(term)
+        );
+        renderServices(filtered);
+    }
     // --- LÓGICA DE MANTENIMIENTO Y RECIBOS ---
     async function saveService() {
         const btn = document.getElementById('btnService');
