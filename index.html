@@ -456,7 +456,7 @@
         llenarDropdownViajes(name);
     }
 
-    async function addExpense() {
+async function addExpense() {
         const btn = document.getElementById('btnGasto');
         const name = document.getElementById('tripSelect').value;
         const monto = parseFloat(document.getElementById('monto').value);
@@ -477,19 +477,44 @@
                 fileData = base64Full.split(',')[1]; 
             }
 
-            const payload = { type: "GASTO_DETALLE", tripName: name, categoria: document.getElementById('cat').value, monto: monto, fecha: document.getElementById('fechaGasto').value, filename: filename, mimeType: mimeType, fileData: fileData };
+            const fecha = document.getElementById('fechaGasto').value;
+            const cat = document.getElementById('cat').value;
+            const payload = { type: "GASTO_DETALLE", tripName: name, categoria: cat, monto: monto, fecha: fecha, filename: filename, mimeType: mimeType, fileData: fileData };
+
+            // === MEMORIA INSTANTÁNEA PARA EL MODO OFFLINE ===
+            // Busca el viaje en la memoria del teléfono y le inyecta el gasto a la pantalla
+            let viajeLocal = listaViajes.find(v => v.nombre === name);
+            if (viajeLocal) {
+                viajeLocal.total += monto;
+                if (!viajeLocal.gastos) viajeLocal.gastos = [];
+                // Lo pone de primero en la lista (unshift)
+                viajeLocal.gastos.unshift({ 
+                    fecha: fecha, 
+                    categoria: cat, 
+                    monto: monto, 
+                    fileUrl: fileData ? "Bandeja" : "Sin recibo adjunto" 
+                });
+                localStorage.setItem('aquilaTrips', JSON.stringify(listaViajes));
+            }
 
             if (!navigator.onLine) {
                 saveToOutbox(payload);
-                alert("⚠️ Sin internet. Guardado en la bandeja de salida.");
+                alert("⚠️ Sin internet. Guardado en la memoria del teléfono.");
+                // Refresca la pantalla para que veas el gasto al instante
+                updateTotalDisplay(); 
             } else {
                 btn.innerText = "⏳ ENVIANDO A DRIVE...";
                 await fetch(scriptURL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
                 alert("✅ Gasto registrado con éxito.");
+                // Si hay internet, vuelve a descargar la lista oficial para tener el enlace real del recibo
+                setTimeout(() => cargarViajes(name), 1500);
             }
-            document.getElementById('monto').value = ""; if(fileInput) fileInput.value = ""; 
-            if (navigator.onLine) setTimeout(() => cargarViajes(name), 1500);
+            
+            document.getElementById('monto').value = ""; 
+            if(fileInput) fileInput.value = ""; 
+            
         } catch (e) { alert("❌ Error: " + e.message); }
+        
         btn.innerText = "➕ REGISTRAR PARTIDA";
         btn.disabled = false;
     }
