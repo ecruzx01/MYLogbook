@@ -82,6 +82,11 @@
             <span style="font-size:12px; font-weight:bold; color:#004080;">TOTAL ACUMULADO:</span>
             <span id="displayTotal" style="font-size: 28px; font-weight: bold; color: #d9534f; display: block;">$0.00</span>
         </div>
+
+        <div class="section-header" style="margin-top: 20px;">Desglose de Gastos</div>
+        <div id="expenseHistory" style="max-height: 300px; overflow-y: auto; font-size: 12px; background: #f8fafc; padding: 10px; border-radius: 10px;">
+            <p style="text-align:center; color:#666;">Selecciona un viaje para ver sus recibos y gastos.</p>
+        </div>
     </div>
 
     <div id="auditor" class="tab-content">
@@ -380,10 +385,46 @@ function calculateRange() {
         } catch (e) { select.innerHTML = '<option value="">❌ Error de conexión</option>'; }
     }
 
-    function updateTotalDisplay() {
+function updateTotalDisplay() {
         const nombre = document.getElementById('tripSelect').value;
         const viaje = listaViajes.find(v => v.nombre === nombre);
+        
+        // 1. Actualiza el Total
         document.getElementById('displayTotal').innerText = viaje ? `$${viaje.total.toFixed(2)}` : "$0.00";
+        
+        // 2. Actualiza la lista de Gastos y Recibos
+        const historyDiv = document.getElementById('expenseHistory');
+        
+        if (!viaje) {
+            historyDiv.innerHTML = "<p style='text-align:center; color:#666;'>Selecciona un viaje para ver sus recibos y gastos.</p>";
+            return;
+        }
+        
+        if (!viaje.gastos || viaje.gastos.length === 0) {
+            historyDiv.innerHTML = "<p style='text-align:center; color:#666;'>No hay gastos registrados en este viaje aún.</p>";
+            return;
+        }
+        
+        let html = "";
+        viaje.gastos.forEach(g => {
+            // Crea el botón verde si hay foto, o un texto gris si no la hay
+            let btnHtml = (g.fileUrl && g.fileUrl !== "Sin recibo adjunto" && !g.fileUrl.includes("ERROR")) 
+                ? `<button onclick="window.open('${g.fileUrl}', '_blank')" style="background:#2ecc71; color:white; border:none; padding:6px 10px; border-radius:5px; font-weight:bold; cursor:pointer; font-size:10px; margin-top:5px;">📄 VER RECIBO</button>` 
+                : `<span style="font-size:10px; color:#aaa; font-style:italic; display:block; margin-top:5px;">Sin recibo</span>`;
+                
+            html += `
+                <div style="background:white; padding:10px; margin-bottom:10px; border-radius:8px; border-left: 4px solid #005a9c; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-size:10px; color:#666;">📅 ${g.fecha}</div>
+                        <div style="font-weight:bold; font-size:13px; color:#333; margin-top:3px;">${g.categoria}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-weight:bold; font-size:15px; color:#d9534f;">$${g.monto.toFixed(2)}</div>
+                        ${btnHtml}
+                    </div>
+                </div>`;
+        });
+        historyDiv.innerHTML = html;
     }
 
     async function createNewTrip() {
