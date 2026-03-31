@@ -441,7 +441,10 @@ function updateTotalDisplay() {
         document.getElementById('newTripDest').value = "";
         cargarViajes(name);
     }
-
+if (!navigator.onLine) {
+        alert("⚠️ Estás sin señal de internet. Las calculadoras de navegación funcionan, pero debes esperar a tener conexión para guardar en la bitácora.");
+        return;
+    }
     async function addExpense() {
         const btn = document.getElementById('btnGasto');
         const name = document.getElementById('tripSelect').value;
@@ -611,6 +614,17 @@ function updateTotalDisplay() {
         document.getElementById('sFecha').value = today;
         cargarViajes();
     };
+</script>
+    
+<script>
+    // Iniciar el Service Worker para uso Offline
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Modo Offline Activado', reg))
+                .catch(err => console.log('Error en Modo Offline', err));
+        });
+    }
 </script>
 </body>
 </html>
